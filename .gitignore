@@ -1,0 +1,17 @@
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+venv/
+env/
+.venv/
+*.sqlite3
+
+# App Data & Large ML Models
+data/models/*.pth
+data/temp/
+data/outputs/
+
+# Environments & Configs
+.env

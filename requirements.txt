@@ -1,0 +1,7 @@
+# Core ML Dependencies
+torch
+torchvision
+
+# Uncomment and add your API framework if you are serving this model over the web:
+# fastapi
+# uvicorn
