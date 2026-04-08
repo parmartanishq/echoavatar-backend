@@ -29,5 +29,5 @@ Ensure that your PyTorch model weights (`*.pth`) are placed inside the `data/mod
 Execute your main Python script to start the process:
 
 ```bash
-python main.py
+uv run run.py
 ```
