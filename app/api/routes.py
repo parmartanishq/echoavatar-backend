@@ -5,10 +5,19 @@ import edge_tts
 import google.generativeai as genai
 from fastapi import APIRouter, HTTPException, Request, UploadFile, File, Form
 from fastapi.responses import FileResponse
+from starlette.background import BackgroundTask
 from typing import Annotated, Optional
 from app.services.wav2lip_service import generate_lip_sync
 
 router = APIRouter()
+
+def remove_file(path: str):
+    """Helper function to remove a file from the disk securely."""
+    try:
+        if path and os.path.exists(path):
+            os.remove(path)
+    except Exception:
+        pass
 
 @router.post("/generate-script")
 async def generate_script_ai(
@@ -47,8 +56,15 @@ async def generate_audio_preview(
         voice = "en-US-GuyNeural" if voice_gender.lower() == "male" else "en-US-JennyNeural"
         communicate = edge_tts.Communicate(script_text, voice)
         await communicate.save(audio_path)
-        return FileResponse(audio_path, media_type="audio/wav", filename="preview.wav")
+        
+        return FileResponse(
+            audio_path, 
+            media_type="audio/wav", 
+            filename="preview.wav",
+            background=BackgroundTask(remove_file, audio_path)
+        )
     except Exception as e:
+        remove_file(audio_path)
         raise HTTPException(status_code=500, detail=str(e))
 
 @router.post("/generate")
@@ -63,6 +79,10 @@ async def generate_video(
     
     if not audio_file and not script_text:
         raise HTTPException(status_code=400, detail="Please provide either an audio file or a text script.")
+    
+    face_path = None
+    audio_path = None
+    video_path = None
     
     # Create temp directory for incoming files
     os.makedirs("data/temp", exist_ok=True)
@@ -91,10 +111,17 @@ async def generate_video(
         
     try:
         video_path = generate_lip_sync(face_path, audio_path, model)
-        return FileResponse(video_path, media_type="video/mp4", filename="lip_sync_result.mp4")
+        
+        return FileResponse(
+            video_path, 
+            media_type="video/mp4", 
+            filename="lip_sync_result.mp4",
+            background=BackgroundTask(remove_file, video_path)
+        )
     except Exception as e:
+        remove_file(video_path)
         raise HTTPException(status_code=500, detail=str(e))
     finally:
         # Clean up temporary input files after generation
-        if os.path.exists(face_path): os.remove(face_path)
-        if os.path.exists(audio_path): os.remove(audio_path)
+        remove_file(face_path)
+        remove_file(audio_path)
